@@ -92,10 +92,26 @@ module.exports = (server) => {
       }
     });
 
+    // offer -> file Transfering; callOffer -> VoiceChannel
+
     socket.on('offer', ({ from, to, payload }) => {
       console.log({ to, payload });
       const user = UserSocketId(users, to);
       io.to(user.id).emit('backOffer', { from, to, payload });
+    });
+
+    socket.on('callOffer', ({ from, to, payload }) => {
+      console.log({ to, payload });
+      const user = UserSocketId(users, to);
+      io.to(user.id).emit('callBackOffer', { from, to, payload });
+    });
+
+    // answer -> file Transfering; callAnswer -> VoiceChannel
+
+    socket.on('callAnswer', ({ from, to, payload }) => {
+      console.log({ from, to, payload });
+      const user = UserSocketId(users, from);
+      io.to(user.id).emit('callBackAnswer', { from, to, payload });
     });
 
     socket.on('answer', ({ from, to, payload }) => {
@@ -124,12 +140,34 @@ module.exports = (server) => {
       }
     });
 
+    socket.on('call by', ({ from, to }) => {
+      const user = UserSocketId(users, to);
+      if (user !== undefined) {
+        io.to(user.id).emit('call by', { from, to });
+      }
+    });
+
+    socket.on('dismiss call', ({ from, to }) => {
+      const user = UserSocketId(users, to.from);
+      if (user !== undefined) {
+        io.to(user.id).emit('dismiss call', { from, to });
+      }
+    });
+
+    socket.on('join call', ({ from, to }) => {
+      const user = UserSocketId(users, to.from);
+      if (user !== undefined) {
+        io.to(user.id).emit('join call', { from, to });
+      }
+    });
+
     // Handle Clean up
     socket.on('disconnect', async () => {
       const values = users.values();
 
       for (const v of values) {
         if (v.id === socket.id) {
+          console.log('Disconnected user id :', socket.id);
           users.delete(v.id);
           io.emit('user status', {
             LastSeen: Date.now(),
@@ -145,8 +183,6 @@ module.exports = (server) => {
           return;
         }
       }
-
-      console.log('Disconnected user id :', socket.id);
     });
   });
 };
