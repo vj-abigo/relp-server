@@ -45,16 +45,17 @@ module.exports = (server) => {
       // Search for messages in the database
 
       const message = await Message.find({ to: u.uid });
-      console.log(message);
+      console.log('Messages on the mongodb', message);
       if (message) {
         io.to(socket.id).emit('new message', message);
       }
-      console.log(users);
+      console.log('No of online users: ', users.size);
     });
 
     socket.on('send message', (message) => {
-      console.log(message);
+      console.log('Send message', message);
       const user = UserSocketId(users, message.to);
+      console.log('the user id', user);
       if (!user) {
         const res = new Message({ ...message });
         res.save().then(() => console.log('Saved Successfully'));
@@ -95,13 +96,15 @@ module.exports = (server) => {
     // offer -> file Transfering; callOffer -> VoiceChannel
 
     socket.on('offer', ({ from, to, payload }) => {
-      console.log({ to, payload });
+      // console.log({ to, payload });
       const user = UserSocketId(users, to);
-      io.to(user.id).emit('backOffer', { from, to, payload });
+      if (user) {
+        io.to(user.id).emit('backOffer', { from, to, payload });
+      }
     });
 
     socket.on('callOffer', ({ from, to, payload }) => {
-      console.log({ to, payload });
+      // console.log({ to, payload });
       const user = UserSocketId(users, to);
       io.to(user.id).emit('callBackOffer', { from, to, payload });
     });
@@ -109,19 +112,19 @@ module.exports = (server) => {
     // answer -> file Transfering; callAnswer -> VoiceChannel
 
     socket.on('callAnswer', ({ from, to, payload }) => {
-      console.log({ from, to, payload });
+      // console.log({ from, to, payload });
       const user = UserSocketId(users, from);
       io.to(user.id).emit('callBackAnswer', { from, to, payload });
     });
 
     socket.on('answer', ({ from, to, payload }) => {
-      console.log({ from, to, payload });
+      // console.log({ from, to, payload });
       const user = UserSocketId(users, from);
       io.to(user.id).emit('backAnswer', { from, to, payload });
     });
 
     socket.on('shareID', ({ shareID, finalTo, channelID, ...rest }) => {
-      console.log(shareID, finalTo, rest);
+      // console.log(shareID, finalTo, rest);
       const user = UserSocketId(users, finalTo);
       io.to(user.id).emit('shareID', { shareID, channelID, rest });
     });
@@ -168,7 +171,7 @@ module.exports = (server) => {
       for (const v of values) {
         if (v.id === socket.id) {
           console.log('Disconnected user id :', socket.id);
-          users.delete(v.id);
+          users.delete(v.uid);
           io.emit('user status', {
             LastSeen: Date.now(),
             status: 'Offline',

@@ -4,7 +4,7 @@ const notify = async (message) => {
   try {
     const token = await Token.find({ uid: message.to });
     console.log(token);
-    if (token) {
+    if (token.length === 1) {
       const res = await axios({
         method: 'POST',
         url: 'https://fcm.googleapis.com/fcm/send',
