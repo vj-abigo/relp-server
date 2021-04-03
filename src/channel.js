@@ -6,6 +6,7 @@ module.exports = (server) => {
   const { notify, UserSocketId } = require('./Utils');
   const io = socketIO(server);
   const users = new Map();
+  const qrCodeMap = new Map();
 
   io.on('connection', (socket) => {
     console.log('Made connection id:', socket.id);
@@ -161,6 +162,47 @@ module.exports = (server) => {
       const user = UserSocketId(users, to.from);
       if (user !== undefined) {
         io.to(user.id).emit('join call', { from, to });
+      }
+    });
+
+    socket.on('create qrcode', ({ nId, fromuID }) => {
+      qrCodeMap.set(nId, {
+        from: socket.id,
+        fromuID,
+      });
+    });
+
+    socket.on('qrcode', ({ nId, touID }) => {
+      if (qrCodeMap.has(nId)) {
+        const data = qrCodeMap.get(nId);
+        data.to = socket.id;
+
+        io.to(data.from).emit('qrcode connected', {
+          to: socket.id,
+          from: data.from,
+          fromuID: data.fromuID,
+          touID,
+          nId,
+        });
+      }
+    });
+
+    socket.on('send public key', (data) => {
+      if (data) {
+        io.to(data.to).emit('recieve public key', data);
+      }
+    });
+
+    socket.on('send other public key', (data) => {
+      if (data) {
+        io.to(data.from).emit('recieve other key', data);
+      }
+    });
+
+    socket.on('now refresh', (data) => {
+      if (data) {
+        io.to(data.to).emit('now refresh');
+        qrCodeMap.delete(data.nId);
       }
     });
 
